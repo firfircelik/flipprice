@@ -91,7 +91,7 @@ def estimate_price(brand: str, category: str, condition: str, age_years: float =
         reg = Ridge(alpha=1.0)
         reg.fit(X, y)
         pred = float(reg.predict(x_new)[0])
-        engine = "sklearn-ridge-fallback (pip install tabpfn for TabPFN)"
+        engine = "sklearn-ridge-fallback (accept TabPFN license + set TABPFN_TOKEN for TabPFN)"
     except Exception:
         avg = sum(y) / len(y)
         pred, engine = avg, "mean-fallback"

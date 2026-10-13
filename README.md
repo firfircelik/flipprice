@@ -29,7 +29,8 @@ Vintage / second-hand resellers live on margins: buy low at flea markets, list f
 pip install -r requirements.txt
 # for the real open models:
 ollama pull gemma3:1b && ollama serve
-# pip install tabpfn pymongo
+pip install tabpfn pymongo
+export TABPFN_TOKEN="<your-key>"   # one-time license at https://ux.priorlabs.ai
 uvicorn app.main:app --reload --port 8000
 # open http://localhost:8000
 ```
