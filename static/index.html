@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FlipPrice — know what it's worth before you list it</title>
+<style>body{font-family:system-ui;max-width:720px;margin:2rem auto;padding:0 1rem}input,select,button{padding:.5rem;margin:.25rem 0;width:100%}pre{background:#f4f4f4;padding:1rem;white-space:pre-wrap}</style>
+<h1>FlipPrice</h1>
+<p>Vintage resellers: photo + 4 fields → listing draft + fair-price range + net payout. Open models, zero per-listing API cost.</p>
+<form id="f">
+<input id="name" placeholder="Item name (e.g. Film camera Canon AE-1)" required>
+<input id="brand" placeholder="Brand (canon)">
+<input id="category" placeholder="Category (camera)">
+<select id="condition"><option>like_new</option><option selected>good</option><option>fair</option><option>sealed</option></select>
+<input id="age_years" type="number" value="3" min="0" step="1">
+<input id="buy_cost" type="number" value="50" min="0" step="1" placeholder="What you paid (USD)">
+<input id="notes" placeholder="Notes (shutter works, light seals new)">
+<button>Appraise</button>
+</form>
+<pre id="out">Result appears here…</pre>
+<script>
+f.onsubmit = async e => {
+  e.preventDefault();
+  const body = {name:name.value,brand:brand.value||"unbranded",category:category.value||"misc",
+    condition:condition.value,age_years:+age_years.value,buy_cost:+buy_cost.value,notes:notes.value};
+  const r = await fetch("/api/appraise",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  out.textContent = JSON.stringify(await r.json(), null, 2);
+};
+</script>

@@ -1,0 +1,21 @@
+brand,category,condition,age_years,sold_price_usd
+nike,shoes,like_new,1,85
+nike,shoes,good,2,62
+adidas,shoes,like_new,1,78
+levis,jacket,good,3,55
+levis,jacket,like_new,1,88
+apple,headphones,like_new,1,120
+sony,headphones,good,2,75
+sony,camera,fair,5,210
+canon,camera,good,3,320
+nintendo,console,like_new,2,240
+ikea,chair,good,2,45
+herschel,backpack,like_new,1,60
+coach,bag,good,4,95
+lego,toys,sealed,2,70
+fender,guitar,good,6,480
+zara,dress,like_new,0,35
+patagonia,jacket,like_new,2,110
+ dyson,vacuum,good,3,180
+kitchenaid,mixer,like_new,2,260
+vintage,watch,fair,15,150
