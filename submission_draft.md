@@ -14,6 +14,8 @@ Who pays: resellers listing 20–50 items/week. They lose money two ways — und
 
 ## Demo
 
+DEV draft (compact,bestos): https://dev.to/firfircelik/flipprice-know-what-it-is-worth-before-you-list-it-side-hustle-entry-3jd0-temp-slug-9902198/edit
+
 Local: `uvicorn app.main:app --port 8000` → http://localhost:8000
 
 `POST /api/appraise` example:
