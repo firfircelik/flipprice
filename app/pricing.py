@@ -10,15 +10,30 @@ def _load_rows():
         return list(csv.DictReader(f))
 
 
-def _featurize(brand, category, condition, age_years):
-    return [len(brand), len(category), COND_SCORE.get(condition, 0.5), float(age_years or 0)]
+def _stats(rows):
+    prices = [float(r["sold_price_usd"]) for r in rows]
+    gmean = sum(prices) / len(prices)
+    cat, brand = {}, {}
+    for r in rows:
+        cat.setdefault(r["category"], []).append(float(r["sold_price_usd"]))
+        brand.setdefault(r["brand"], []).append(float(r["sold_price_usd"]))
+    return gmean, {k: sum(v) / len(v) for k, v in cat.items()}, \
+        {k: sum(v) / len(v) for k, v in brand.items()}
+
+
+def _featurize(brand, category, condition, age_years, gmean, cat_mean, brand_mean):
+    return [COND_SCORE.get(condition, 0.5), float(age_years or 0),
+            cat_mean.get(category, gmean), brand_mean.get(brand, gmean)]
 
 
 def estimate_price(brand: str, category: str, condition: str, age_years: float = 1.0) -> dict:
     rows = _load_rows()
-    X = [_featurize(r["brand"], r["category"], r["condition"], r["age_years"]) for r in rows]
+    gmean, cat_mean, brand_mean = _stats(rows)
+    X = [_featurize(r["brand"], r["category"], r["condition"], r["age_years"],
+                    gmean, cat_mean, brand_mean) for r in rows]
     y = [float(r["sold_price_usd"]) for r in rows]
-    x_new = [_featurize(brand, category, condition, age_years)]
+    x_new = [_featurize(brand, category, condition, age_years,
+                        gmean, cat_mean, brand_mean)]
 
     # 1) TabPFN — open-source tabular foundation model (Prior Labs).
     try:
@@ -32,13 +47,16 @@ def estimate_price(brand: str, category: str, condition: str, age_years: float =
     except Exception:
         pass
     # 2) sklearn fallback so judges can run without GPU/heavy deps.
+    # Ridge (linear) is deliberate here: on 20-row reseller CSVs a linear
+    # model learns the condition->price gradient where tree ensembles
+    # just memorize noise. TabPFN remains the primary engine.
     try:
-        from sklearn.ensemble import RandomForestRegressor
+        from sklearn.linear_model import Ridge
 
-        reg = RandomForestRegressor(n_estimators=100, random_state=0)
+        reg = Ridge(alpha=1.0)
         reg.fit(X, y)
         pred = float(reg.predict(x_new)[0])
-        engine = "sklearn-fallback (pip install tabpfn for TabPFN)"
+        engine = "sklearn-ridge-fallback (pip install tabpfn for TabPFN)"
     except Exception:
         avg = sum(y) / len(y)
         pred, engine = avg, "mean-fallback"
