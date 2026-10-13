@@ -1,26 +1,123 @@
 <!doctype html>
-<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FlipPrice — know what it's worth before you list it</title>
-<style>body{font-family:system-ui;max-width:720px;margin:2rem auto;padding:0 1rem}input,select,button{padding:.5rem;margin:.25rem 0;width:100%}pre{background:#f4f4f4;padding:1rem;white-space:pre-wrap}</style>
-<h1>FlipPrice</h1>
-<p>Vintage resellers: photo + 4 fields → listing draft + fair-price range + net payout. Open models, zero per-listing API cost.</p>
-<form id="f">
-<input id="name" placeholder="Item name (e.g. Film camera Canon AE-1)" required>
-<input id="brand" placeholder="Brand (canon)">
-<input id="category" placeholder="Category (camera)">
-<select id="condition"><option>like_new</option><option selected>good</option><option>fair</option><option>sealed</option></select>
-<input id="age_years" type="number" value="3" min="0" step="1">
-<input id="buy_cost" type="number" value="50" min="0" step="1" placeholder="What you paid (USD)">
-<input id="notes" placeholder="Notes (shutter works, light seals new)">
-<button>Appraise</button>
-</form>
-<pre id="out">Result appears here…</pre>
+<style>
+:root{--bg:#faf9f7;--card:#fff;--ink:#1d1d1f;--mut:#6b6b70;--acc:#0a7d44;--line:#e8e4de}
+*{box-sizing:border-box}body{font-family:-apple-system,system-ui,Segoe UI,sans-serif;background:var(--bg);color:var(--ink);margin:0}
+.wrap{max-width:1020px;margin:0 auto;padding:1.5rem}
+header{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:.5rem}
+header p{color:var(--mut);margin:.25rem 0 0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem;margin:1rem 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.9rem 1rem}
+.card b{font-size:1.5rem;display:block}.card span{color:var(--mut);font-size:.85rem}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media(max-width:800px){.grid{grid-template-columns:1fr}}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1.1rem 1.2rem;margin-bottom:1rem}
+h2{margin:.2rem 0 .8rem;font-size:1.05rem}
+label{font-size:.82rem;color:var(--mut);display:block;margin:.55rem 0 .2rem}
+input,select,button{padding:.55rem .65rem;border:1px solid var(--line);border-radius:8px;font-size:.95rem;width:100%}
+button{background:var(--acc);color:#fff;border:0;cursor:pointer;font-weight:600;margin-top:.7rem}
+button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+pre{background:#141414;color:#d7f5df;padding:.9rem;border-radius:8px;white-space:pre-wrap;font-size:.8rem;max-height:320px;overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th,td{text-align:left;padding:.5rem .4rem;border-bottom:1px solid var(--line)}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.profit{color:var(--acc);font-weight:700}
+.err{color:#b3261e;font-size:.85rem;min-height:1.2em}
+img.thumb{max-width:100%;border-radius:8px;margin-top:.5rem}
+.del{background:none;border:0;color:#b3261e;width:auto;padding:.2rem .4rem;cursor:pointer}
+footer{color:var(--mut);font-size:.8rem;text-align:center;margin:2rem 0}
+</style>
+<div class="wrap">
+<header>
+  <div><h1>FlipPrice</h1><p>Know what it's worth before you list it — for vintage &amp; second-hand resellers.</p></div>
+  <div class="cards" id="stats" style="margin:0">
+    <div class="card"><b id="s-count">–</b><span>items appraised</span></div>
+    <div class="card"><b id="s-net">–</b><span>total net profit</span></div>
+    <div class="card"><b id="s-margin">–</b><span>avg margin</span></div>
+  </div>
+</header>
+
+<div class="grid">
+<section>
+  <h2>1 · Appraise an item</h2>
+  <div class="err" id="f-err"></div>
+  <label>Item name</label><input id="name" placeholder="Canon AE-1 film camera" maxlength="120">
+  <div class="row">
+    <div><label>Brand</label><input id="brand" placeholder="canon" maxlength="60"></div>
+    <div><label>Category</label><input id="category" placeholder="camera" maxlength="60"></div>
+  </div>
+  <div class="row">
+    <div><label>Condition</label><select id="condition"><option value="sealed">sealed</option><option value="like_new">like new</option><option value="good" selected>good</option><option value="fair">fair</option><option value="poor">poor</option></select></div>
+    <div><label>Age (years)</label><input id="age" type="number" value="3" min="0" max="100"></div>
+  </div>
+  <div class="row">
+    <div><label>What you paid (USD)</label><input id="buy" type="number" value="50" min="0" step="1"></div>
+    <div><label>Marketplace fee %</label><input id="fee" type="number" value="13" min="0" max="50" step="0.5"></div>
+  </div>
+  <label>Notes (flaws, extras — buyers trust honest listings)</label><input id="notes" placeholder="shutter works, light seals new" maxlength="500">
+  <label>Photo (optional, .png/.jpg ≤ 2 MB)</label><input id="photo" type="file" accept=".png,.jpg,.jpeg">
+  <img class="thumb" id="preview" hidden>
+  <button id="go">Appraise → listing + price + payout</button>
+</section>
+<section>
+  <h2>2 · Your listing</h2>
+  <pre id="out">Result appears here…</pre>
+  <h2 style="margin-top:1rem">3 · Teach it your market (optional)</h2>
+  <p style="font-size:.85rem;color:var(--mut)">Upload your sold history as CSV (<code>brand,category,condition,age_years,sold_price_usd</code>) — estimates then learn from <em>your</em> niche.</p>
+  <input id="comps" type="file" accept=".csv">
+  <button class="ghost" id="comps-go">Upload sold comps</button>
+  <div class="err" id="c-err"></div>
+</section>
+</div>
+
+<section>
+  <h2>Inventory</h2>
+  <table><thead><tr><th>Item</th><th>Price (p50)</th><th>Net</th><th>Margin</th><th>Engine</th><th></th></tr></thead>
+  <tbody id="rows"><tr><td colspan="6">loading…</td></tr></tbody></table>
+</section>
+<footer>FlipPrice · open-weight AI, zero per-listing cost · <a href="https://github.com/firfircelik/flipprice">GitHub</a></footer>
+</div>
 <script>
-f.onsubmit = async e => {
-  e.preventDefault();
-  const body = {name:name.value,brand:brand.value||"unbranded",category:category.value||"misc",
-    condition:condition.value,age_years:+age_years.value,buy_cost:+buy_cost.value,notes:notes.value};
-  const r = await fetch("/api/appraise",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-  out.textContent = JSON.stringify(await r.json(), null, 2);
+const $ = id => document.getElementById(id);
+const money = n => '$' + Number(n).toFixed(2);
+async function refresh(){
+  const [items, s] = await Promise.all([(await fetch('/api/items')).json(), (await fetch('/api/stats')).json()]);
+  $('s-count').textContent = s.count; $('s-net').textContent = money(s.total_net); $('s-margin').textContent = s.avg_margin_pct + '%';
+  $('rows').innerHTML = items.length ? items.map(i =>
+    `<tr><td>${i.photo_url ? '📷 ' : ''}${escapeHtml(i.name)} <span style="color:#888">· ${escapeHtml(i.condition)}</span></td><td class="num">${money(i.price.p50)}</td><td class="num profit">${money(i.payout.net)}</td><td class="num">${i.payout.margin_pct}%</td><td style="font-size:.75rem;color:#888">${escapeHtml(i.price.engine.split(' (')[0])}</td><td><button class="del" onclick="delItem('${i.id}')">✕</button></td></tr>`).join('')
+    : '<tr><td colspan="6">No items yet — appraise your first find above.</td></tr>';
+}
+function escapeHtml(s){return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+async function delItem(id){ await fetch('/api/items/' + id, {method:'DELETE'}); refresh(); }
+let photoUrl = '';
+$('photo').onchange = async e => {
+  const f = e.target.files[0]; if(!f) return;
+  const fd = new FormData(); fd.append('file', f);
+  const r = await fetch('/api/photos', {method:'POST', body: fd});
+  const j = await r.json();
+  if(!r.ok){ $('f-err').textContent = j.detail; return; }
+  photoUrl = j.photo_url; $('preview').src = photoUrl; $('preview').hidden = false;
 };
+$('go').onclick = async () => {
+  $('f-err').textContent = '';
+  const body = {name:$('name').value, brand:$('brand').value||'unbranded', category:$('category').value||'misc', condition:$('condition').value, age_years:+$('age').value, buy_cost:+$('buy').value, fee_pct:+$('fee').value, notes:$('notes').value, photo_url:photoUrl};
+  const r = await fetch('/api/appraise', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  const j = await r.json();
+  if(!r.ok){ $('f-err').textContent = j.detail?.[0]?.msg || j.detail || 'invalid input'; return; }
+  $('out').textContent = `TITLE: ${j.listing.title}\n\n${j.listing.description}\n\nFAIR PRICE: ${money(j.price.low)} – ${money(j.price.high)} (p50 ${money(j.price.p50)} via ${j.price.engine.split(' (')[0]})\nNET: ${money(j.payout.net)} (${j.payout.margin_pct}% margin after ${money(j.payout.fees)} fees)`;
+  refresh();
+};
+$('comps-go').onclick = async () => {
+  const f = $('comps').files[0]; if(!f) return;
+  const fd = new FormData(); fd.append('file', f);
+  const r = await fetch('/api/comps', {method:'POST', body: fd});
+  const j = await r.json();
+  $('c-err').textContent = r.ok ? `✓ ${j.rows} sold rows active — estimates now learn from your market.` : j.detail;
+  $('c-err').style.color = r.ok ? '#0a7d44' : '#b3261e';
+};
+refresh();
 </script>

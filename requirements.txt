@@ -5,6 +5,9 @@ python-multipart>=0.0.9
 pillow>=10.0
 scikit-learn>=1.4
 numpy>=1.26
+pillow>=10.0
+pytest>=8.0
+httpx>=0.27
 # Optional — enable for prize categories:
 # tabpfn>=2.0  (Best Use of TabPFN, featured $200)
 # pymongo>=4.0  (Best Use of MongoDB Atlas, $100)
