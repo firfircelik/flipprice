@@ -19,7 +19,7 @@ Vintage / second-hand resellers live on margins: buy low at flea markets, list f
 
 - Python + FastAPI (`app/main.py`), static HTML demo
 - Open-weight: Gemma 3 via Ollama (`OLLAMA_MODEL=gemma3:1b`, falls back to local `llama3.2:1b`/`qwen2.5:7b`) — `app/describer.py`. Verified live: `ollama:llama3.2:1b` writes real listings; Gemma pull in progress for the Gemma prize category.
-- Open-source AI: TabPFN regressor, Ridge fallback tuned for 20-row reseller CSVs — `app/pricing.py`
+- Open-source AI: TabPFN regressor (verified live 2026-10-14 with license token — engine `tabpfn`, Canon AE-1 p50 318.49), Ridge fallback
 - Storage: local JSON, upgrades to MongoDB Atlas if `MONGODB_URI` set — `app/store.py` (Best Use of MongoDB Atlas path)
 - Deploy: Render-ready (`render.yaml` + Deploy button above)
 
@@ -30,7 +30,7 @@ pip install -r requirements.txt
 # for the real open models:
 ollama pull gemma3:1b && ollama serve
 pip install tabpfn pymongo
-export TABPFN_TOKEN="<your-key>"   # one-time license at https://ux.priorlabs.ai
+export TABPFN_TOKEN="<your-key>"   # one-time license at https://ux.priorlabs.ai (verified working 2026-10-14)
 uvicorn app.main:app --reload --port 8000
 # open http://localhost:8000
 ```
