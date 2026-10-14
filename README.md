@@ -66,6 +66,38 @@ flowchart LR
 - Best Use of MongoDB Atlas (partner, optional) — set `MONGODB_URI`
 - Best Use of Render (featured, optional) — deploy via `render.yaml`
 
+## Prize categories entered
+
+- Best Use of Gemma (featured) — listing writer runs on Gemma 3
+- Best Use of TabPFN (featured) — price estimator runs TabPFN when installed
+- Best Use of MongoDB Atlas (partner, optional) — set `MONGODB_URI`
+- Best Use of Render (featured, optional) — deploy via `render.yaml`
+
+## Technical notes (measured 2026-10-14, Apple M2, cold process)
+
+| Operation | Latency | Notes |
+|---|---|---|
+| Listing draft, `ollama:gemma3:1b` local | ~6.0 s | real open-weight inference, 1.3 GB model |
+| Price estimate, cold, no token | ~5.2 s | sklearn cold import dominates |
+| Price estimate, warm | ~9 ms | Ridge on target-encoded features |
+| Full offline appraisal round-trip | ~1.6 s | template fallback, no model server |
+| `pytest tests/` (8 tests incl. live LLM) | ~35 s | |
+
+Two bugs the journey tests caught, with numbers:
+
+1. **RandomForest memorized noise on 20 rows.** `like_new` priced at 97.51
+   vs `fair` at 103.36 — inverted. Fix: target-encoded features
+   (category/brand means + condition score + age) with Ridge. Now
+   sealed 296.69 > like_new 295.58 > good 294.10 > fair 292.62 > poor
+   291.51, guarded by `test_price_condition_monotonic`.
+2. **Importing TabPFN cost ~15 s cold even without a token** (torch import),
+   and v9 weights need a license key regardless. Fix: the TabPFN path is
+   gated on `TABPFN_TOKEN` — no token, no import, no wait. Cold pricing
+   dropped from ~17 s to ~5 s.
+3. **Small-model preamble junk.** `llama3.2:1b` prefixed titles with
+   "Here is a possible listing". Fix: preamble stripping + brand-first
+   guarantee, locked by the describer contract test.
+
 ## License
 
 MIT — see LICENSE.

@@ -73,16 +73,20 @@ def estimate_price(brand: str, category: str, condition: str, age_years: float =
                         gmean, cat_mean, brand_mean)]
 
     # 1) TabPFN — open-source tabular foundation model (Prior Labs).
-    try:
-        from tabpfn import TabPFNRegressor
+    # Gated on TABPFN_TOKEN: importing tabpfn pulls torch cold (~15 s) and
+    # v9 weights need a license key anyway, so don't pay that cost for
+    # users who can't use the engine. Measured 2026-10-14, M2/cold.
+    if os.getenv("TABPFN_TOKEN"):
+        try:
+            from tabpfn import TabPFNRegressor
 
-        reg = TabPFNRegressor()
-        reg.fit(X, y)
-        pred = float(reg.predict(x_new)[0])
-        return {"p50": round(pred, 2), "low": round(pred * 0.85, 2),
-                "high": round(pred * 1.15, 2), "engine": "tabpfn"}
-    except Exception:
-        pass
+            reg = TabPFNRegressor()
+            reg.fit(X, y)
+            pred = float(reg.predict(x_new)[0])
+            return {"p50": round(pred, 2), "low": round(pred * 0.85, 2),
+                    "high": round(pred * 1.15, 2), "engine": "tabpfn"}
+        except Exception:
+            pass
     # 2) Ridge fallback: on 20-row reseller CSVs a linear model learns the
     # condition->price gradient where tree ensembles memorize noise.
     try:
