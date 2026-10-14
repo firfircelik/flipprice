@@ -3,7 +3,7 @@ import shutil
 from typing import Literal
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -62,6 +62,33 @@ def remove_item(item_id: str):
     if not delete_item(item_id):
         raise HTTPException(status_code=404, detail="item not found — was it already deleted?")
     return {"deleted": item_id}
+
+
+FEE_PRESETS = {"etsy": 6.5, "ebay": 13.0, "depop": 10.0, "flat": 0.0}
+
+
+@app.get("/api/fees")
+def fee_presets():
+    return FEE_PRESETS
+
+
+@app.get("/api/items.csv")
+def export_items_csv():
+    import csv
+    import io as _io
+
+    buf = _io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["name", "brand", "category", "condition", "p50", "low", "high",
+                "buy_cost", "fees", "net", "margin_pct", "engine"])
+    for i in list_items():
+        p, pay = i.get("price", {}), i.get("payout", {})
+        w.writerow([i.get("name"), i.get("brand"), i.get("category"), i.get("condition"),
+                    p.get("p50"), p.get("low"), p.get("high"), pay.get("buy_cost"),
+                    pay.get("fees"), pay.get("net"), pay.get("margin_pct"),
+                    (p.get("engine") or "").split(" (")[0]])
+    return Response(buf.getvalue(), media_type="text/csv",
+                    headers={"Content-Disposition": "attachment; filename=flipprice-inventory.csv"})
 
 
 @app.get("/api/stats")

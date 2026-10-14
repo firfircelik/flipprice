@@ -56,7 +56,7 @@ footer{color:var(--mut);font-size:.8rem;text-align:center;margin:2rem 0}
   </div>
   <div class="row">
     <div><label>What you paid (USD)</label><input id="buy" type="number" value="50" min="0" step="1"></div>
-    <div><label>Marketplace fee %</label><input id="fee" type="number" value="13" min="0" max="50" step="0.5"></div>
+    <div><label>Marketplace fee % <span id="presets"></span></label><input id="fee" type="number" value="13" min="0" max="50" step="0.5"></div>
   </div>
   <label>Notes (flaws, extras — buyers trust honest listings)</label><input id="notes" placeholder="shutter works, light seals new" maxlength="500">
   <label>Photo (optional, .png/.jpg ≤ 2 MB)</label><input id="photo" type="file" accept=".png,.jpg,.jpeg">
@@ -66,6 +66,7 @@ footer{color:var(--mut);font-size:.8rem;text-align:center;margin:2rem 0}
 <section>
   <h2>2 · Your listing</h2>
   <pre id="out">Result appears here…</pre>
+  <div class="row"><div><button class="ghost" id="copy">Copy listing</button></div><div><button class="ghost" id="csv">Export inventory CSV</button></div></div>
   <h2 style="margin-top:1rem">3 · Teach it your market (optional)</h2>
   <p style="font-size:.85rem;color:var(--mut)">Upload your sold history as CSV (<code>brand,category,condition,age_years,sold_price_usd</code>) — estimates then learn from <em>your</em> niche.</p>
   <input id="comps" type="file" accept=".csv">
@@ -85,7 +86,8 @@ footer{color:var(--mut);font-size:.8rem;text-align:center;margin:2rem 0}
 const $ = id => document.getElementById(id);
 const money = n => '$' + Number(n).toFixed(2);
 async function refresh(){
-  const [items, s] = await Promise.all([(await fetch('/api/items')).json(), (await fetch('/api/stats')).json()]);
+  const [items, s, fees] = await Promise.all([(await fetch('/api/items')).json(), (await fetch('/api/stats')).json(), (await fetch('/api/fees')).json()]);
+  $('presets').innerHTML = Object.entries(fees).map(([k, v]) => `<a href="#" onclick="document.getElementById('fee').value=${v};return false" style="margin-right:.4rem">${k} ${v}%</a>`).join('');
   $('s-count').textContent = s.count; $('s-net').textContent = money(s.total_net); $('s-margin').textContent = s.avg_margin_pct + '%';
   $('rows').innerHTML = items.length ? items.map(i =>
     `<tr><td>${i.photo_url ? '📷 ' : ''}${escapeHtml(i.name)} <span style="color:#888">· ${escapeHtml(i.condition)}</span></td><td class="num">${money(i.price.p50)}</td><td class="num profit">${money(i.payout.net)}</td><td class="num">${i.payout.margin_pct}%</td><td style="font-size:.75rem;color:#888">${escapeHtml(i.price.engine.split(' (')[0])}</td><td><button class="del" onclick="delItem('${i.id}')">✕</button></td></tr>`).join('')
@@ -119,5 +121,7 @@ $('comps-go').onclick = async () => {
   $('c-err').textContent = r.ok ? `✓ ${j.rows} sold rows active — estimates now learn from your market.` : j.detail;
   $('c-err').style.color = r.ok ? '#0a7d44' : '#b3261e';
 };
+$('copy').onclick = async () => { await navigator.clipboard.writeText($('out').textContent); $('copy').textContent = 'Copied ✓'; setTimeout(() => $('copy').textContent = 'Copy listing', 1500); };
+$('csv').onclick = () => { window.location = '/api/items.csv'; };
 refresh();
 </script>

@@ -123,6 +123,20 @@ def test_photo_attached_to_listing(client):
     assert items[0]["photo_url"] == photo_url
 
 
+def test_fee_presets_and_csv_export(client):
+    """Ayse sells on Etsy, not eBay: presets give her fee, CSV exports her books."""
+    fees = client.get("/api/fees").json()
+    assert fees["etsy"] == 6.5 and fees["ebay"] == 13.0
+
+    client.post("/api/appraise", json={
+        "name": "Levis denim trucker", "brand": "levis", "category": "jacket",
+        "condition": "like_new", "age_years": 1, "buy_cost": 20, "fee_pct": fees["etsy"]})
+    csv_text = client.get("/api/items.csv").text
+    lines = csv_text.strip().splitlines()
+    assert lines[0].startswith("name,brand,category")
+    assert len(lines) == 2 and "Levis denim trucker" in lines[1]
+
+
 def test_price_condition_monotonic():
     like_new = estimate_price("canon", "camera", "like_new", 1)["p50"]
     fair = estimate_price("canon", "camera", "fair", 1)["p50"]
