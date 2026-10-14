@@ -52,6 +52,44 @@ def list_items() -> list:
     return _read_local()
 
 
+def record_sale(item_id: str, sold_price: float) -> dict | None:
+    """Attach a realized sale to an item; returns updated item or None."""
+    import time
+
+    if os.getenv("MONGODB_URI"):
+        try:
+            col = _mongo_collection()
+            col.update_one({"id": item_id},
+                           {"$set": {"sold_price": sold_price, "sold_at": int(time.time())}})
+            return col.find_one({"id": item_id}, {"_id": 0})
+        except Exception:
+            pass
+    items = _read_local()
+    for i in items:
+        if i.get("id") == item_id:
+            i["sold_price"] = sold_price
+            import time as _t
+            i["sold_at"] = int(_t.time())
+            _write_local(items)
+            return i
+    return None
+
+
+def calibration() -> dict:
+    """Estimate-vs-realized accuracy over sold items. Empty until sales exist."""
+    sold = [i for i in list_items() if isinstance(i.get("sold_price"), (int, float))]
+    if not sold:
+        return {"n_sold": 0, "note": "record sales to calibrate estimates"}
+    errs = [i["price"]["p50"] - i["sold_price"] for i in sold]
+    abs_errs = sorted(abs(e) for e in errs)
+    return {
+        "n_sold": len(sold),
+        "mae": round(sum(abs_errs) / len(abs_errs), 2),
+        "median_ae": round(abs_errs[len(abs_errs) // 2], 2),
+        "bias": round(sum(errs) / len(errs), 2),
+    }
+
+
 def delete_item(item_id: str) -> bool:
     if os.getenv("MONGODB_URI"):
         try:

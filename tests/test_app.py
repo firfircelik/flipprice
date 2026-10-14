@@ -148,8 +148,23 @@ def test_payout_math():
         "list_price": 200.0, "fees": 26.0, "buy_cost": 50.0, "net": 124.0, "margin_pct": 62.0}
 
 
+def test_sale_calibration_flow(client):
+    """Leyla sells the jacket: records the realized price, calibration learns."""
+    assert client.get("/api/calibration").json()["n_sold"] == 0
+    item = client.post("/api/appraise", json={
+        "name": "Levis denim trucker", "brand": "levis", "category": "jacket",
+        "condition": "like_new", "age_years": 1, "buy_cost": 20}).json()
+    assert client.patch("/api/items/nope", json={"sold_price": 80}).status_code == 404
+    sold = client.patch(f"/api/items/{item['id']}", json={"sold_price": 80}).json()
+    assert sold["sold_price"] == 80 and "sold_at" in sold
+    cal = client.get("/api/calibration").json()
+    assert cal["n_sold"] == 1 and cal["mae"] >= 0 and "bias" in cal
+
+
 def test_live_model_writes_the_listing(tmp_path, monkeypatch):
     """Slow integration: a real local open-weight model writes a real listing."""
+    if os.getenv("OLLAMA_LIVE", "1") != "1":
+        pytest.skip("needs a local Ollama server (OLLAMA_LIVE=1)")
     monkeypatch.setattr(store_mod, "LOCAL_PATH", str(tmp_path / "items.json"))
     c = TestClient(app)  # real OLLAMA_HOST on purpose
     r = c.post("/api/appraise", json={

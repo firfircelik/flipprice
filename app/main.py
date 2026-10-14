@@ -10,9 +10,17 @@ from pydantic import BaseModel, Field
 from app import pricing
 from app.describer import describe_item
 from app.pricing import estimate_price, net_payout, validate_comps_csv
-from app.store import delete_item, list_items, save_item, stats
+from app.store import calibration, delete_item, list_items, record_sale, save_item, stats
 
 app = FastAPI(title="FlipPrice — vintage reseller side hustle")
+
+if os.getenv("SENTRY_DSN"):
+    try:
+        import sentry_sdk
+
+        sentry_sdk.init(dsn=os.environ["SENTRY_DSN"], traces_sample_rate=0.1)
+    except Exception:
+        pass
 BASE = os.path.dirname(os.path.dirname(__file__))
 UPLOAD_DIR = os.path.join(BASE, "static", "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -55,6 +63,23 @@ def appraise(inp: AppraiseIn):
 @app.get("/api/items")
 def items():
     return list_items()
+
+
+class SaleIn(BaseModel):
+    sold_price: float = Field(ge=0, le=10_000_000)
+
+
+@app.patch("/api/items/{item_id}")
+def record_item_sale(item_id: str, sale: SaleIn):
+    item = record_sale(item_id, sale.sold_price)
+    if item is None:
+        raise HTTPException(status_code=404, detail="item not found")
+    return item
+
+
+@app.get("/api/calibration")
+def accuracy():
+    return calibration()
 
 
 @app.delete("/api/items/{item_id}")

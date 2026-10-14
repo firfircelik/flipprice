@@ -45,7 +45,9 @@ Covers: price shape + bounds, condition monotonicity (better condition prices
 higher — caught and fixed a real RandomForest bug during development), payout
 math, describer contract, and full API round-trip.
 
-API: `POST /api/appraise` `{name, brand, category, condition, age_years, buy_cost, notes}` → `{price{p50,low,high,engine}, listing{title,description,engine}, payout{net,margin_pct}}`
+API: `POST /api/appraise` `{name, brand, category, condition, age_years, buy_cost, fee_pct, notes, photo_url}` → `{price{p50,low,high,engine}, listing{title,description,engine}, payout{net,margin_pct}}`. `POST /api/photos`, `POST /api/comps`, `GET /api/stats`, `GET /api/fees`, `GET /api/items.csv`, `PATCH /api/items/{id}` (record sale), `GET /api/calibration`, `DELETE /api/items/{id}`.
+
+Accuracy: `scripts/benchmark.py` runs leave-one-out eval (Ridge MAE 81.91 vs category-median 97.30 vs global-mean 89.86 on the 20-row seed; interval coverage only 10% — the band is overconfident, disclosed in BENCHMARK.md). Record real sales to grow `/api/calibration` beyond n=0.
 
 ## Architecture
 
